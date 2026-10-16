@@ -15,7 +15,6 @@ Styles available:
 """
 
 import argparse
-import math
 import random
 from pathlib import Path
 from colorsys import hls_to_rgb, rgb_to_hsv
@@ -75,7 +74,7 @@ def generate_flow_field(width: int, height: int, seed: int | None = None) -> np.
     angles = np.zeros((height // 10 + 1, width // 10 + 1))
     for gy in range(angles.shape[0]):
         for gx in range(angles.shape[1]):
-            angles[gy, gx] = noise_2d(gx * scale * 50, gy * scale * 50) * math.pi * 4
+            angles[gy, gx] = noise_2d(gx * scale * 50, gy * scale * 50) * np.pi * 4
 
     # Draw flow lines
     for _ in range(num_particles):
@@ -90,8 +89,8 @@ def generate_flow_field(width: int, height: int, seed: int | None = None) -> np.
             angle = angles[gy, gx]
 
             # Move particle
-            x += math.cos(angle) * 2
-            y += math.sin(angle) * 2
+            x += np.cos(angle) * 2
+            y += np.sin(angle) * 2
 
             # Draw with fading alpha
             if 0 <= x < width and 0 <= y < height:
@@ -125,17 +124,15 @@ def generate_plasma(width: int, height: int, seed: int | None = None) -> np.ndar
     freq1 = 0.02 + random.random() * 0.03
     freq2 = 0.03 + random.random() * 0.02
     freq3 = 0.01 + random.random() * 0.02
-    phase = random.random() * math.pi * 2
+    phase = random.random() * np.pi * 2
 
     for y in range(height):
         for x in range(width):
             # Multiple overlapping waves
-            v1 = math.sin(x * freq1 + phase)
-            v2 = math.sin(y * freq2)
-            v3 = math.sin((x + y) * freq3)
-            v4 = math.sin(
-                math.sqrt((x - width / 2) ** 2 + (y - height / 2) ** 2) * 0.02
-            )
+            v1 = np.sin(x * freq1 + phase)
+            v2 = np.sin(y * freq2)
+            v3 = np.sin((x + y) * freq3)
+            v4 = np.sin(np.sqrt((x - width / 2) ** 2 + (y - height / 2) ** 2) * 0.02)
 
             # Combine waves
             value = (v1 + v2 + v3 + v4) / 4
@@ -186,7 +183,7 @@ def generate_voronoi(width: int, height: int, seed: int | None = None) -> np.nda
 
             # Color based on distance for gradient effect
             base_color = point_colors[closest_idx]
-            dist_factor = min(1.0, math.sqrt(min_dist) / 150)
+            dist_factor = min(1.0, np.sqrt(min_dist) / 150)
 
             # Darken towards edges
             color = tuple(int(c * (1 - dist_factor * 0.3)) for c in base_color)
@@ -228,7 +225,7 @@ def generate_nebula(width: int, height: int, seed: int | None = None) -> np.ndar
 
         for y in range(max(0, cy - radius), min(height, cy + radius)):
             for x in range(max(0, cx - radius), min(width, cx + radius)):
-                dist = math.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+                dist = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
                 if dist < radius:
                     noise_val = noise_2d(x * 0.01, y * 0.01)
                     alpha = (1 - dist / radius) * 0.4 * (0.5 + noise_val * 0.5)
@@ -260,9 +257,9 @@ def generate_nebula(width: int, height: int, seed: int | None = None) -> np.ndar
 def noise_2d(x: float, y: float) -> float:
     """Simple 2D noise function using sine combinations."""
     return (
-        math.sin(x * 1.5 + y * 2.3)
-        * math.cos(x * 0.7 - y * 1.8)
-        * math.sin(x * 0.3 + y * 0.9)
+        np.sin(x * 1.5 + y * 2.3)
+        * np.cos(x * 0.7 - y * 1.8)
+        * np.sin(x * 0.3 + y * 0.9)
         + 1
     ) / 2
 
