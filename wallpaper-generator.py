@@ -329,7 +329,7 @@ Examples:
     parser.add_argument(
         "--style",
         choices=STYLE_GENERATORS.keys(),
-        default="flow_field",
+        default=None,
         help="Art style to generate",
     )
     parser.add_argument("--width", type=int, default=1920, help="Image width")
@@ -340,19 +340,21 @@ Examples:
     parser.add_argument("--output", type=str, default=None, help="Output filename")
 
     args = parser.parse_args()
+    style = args.style
 
     # Generate the wallpaper
-    print(f"🎨 Generating {args.style} wallpaper ({args.width}x{args.height})...")
 
-    generator = STYLE_GENERATORS[args.style]
+    if style is None:
+        style, generator = random.choice(list(STYLE_GENERATORS.items()))
+    else:
+        generator = STYLE_GENERATORS[style]
+    print(f"🎨 Generating {style} wallpaper ({args.width}x{args.height})...")
     img_array = generator(args.width, args.height, args.seed)
 
     # Create and save image
     img = Image.fromarray(img_array, "RGB")
 
-    output_path = (
-        args.output or f"wallpaper_{args.style}_{args.width}x{args.height}.png"
-    )
+    output_path = args.output or f"wallpaper_{style}_{args.width}x{args.height}.png"
     img.save(output_path, "PNG")
 
     print(f"✅ Saved to: {output_path}")
