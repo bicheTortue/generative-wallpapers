@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Generative Art Wallpaper Generator
 ===================================
@@ -18,9 +19,11 @@ import argparse
 import random
 from pathlib import Path
 from colorsys import hls_to_rgb, rgb_to_hsv
+from collections import Counter
 
 import numpy as np
 from PIL import Image
+import subprocess
 
 
 def create_color_palette(seed: int | None = None) -> list[tuple[int, int, int]]:
@@ -315,16 +318,58 @@ def get_accent_color(image):
     return votes.most_common(1)[0][0] if votes else "slate"
 
 
+def set_wallpaper_and_accent_gnome(wallpaper, color):
+    subprocess.run(
+        [
+            "gsettings",
+            "set",
+            "org.gnome.desktop.background",
+            "picture-uri",
+            wallpaper.as_uri(),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "gsettings",
+            "set",
+            "org.gnome.desktop.background",
+            "picture-uri-dark",
+            wallpaper.as_uri(),
+        ],
+        check=True,
+    )
+    allowed = {
+        "blue",
+        "teal",
+        "green",
+        "yellow",
+        "orange",
+        "red",
+        "pink",
+        "purple",
+        "slate",
+    }
+
+    if color not in allowed:
+        raise ValueError(f"Unsupported accent color: {color}")
+
+    subprocess.run(
+        [
+            "gsettings",
+            "set",
+            "org.gnome.desktop.interface",
+            "accent-color",
+            color,
+        ],
+        check=True,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate beautiful algorithmic wallpapers",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-    python wallpaper_generator.py
-    python wallpaper_generator.py --style plasma --width 2560 --height 1440
-    python wallpaper_generator.py --style nebula --seed 42 --output cosmic.png
-        """,
     )
     parser.add_argument(
         "--style",
@@ -340,25 +385,23 @@ Examples:
     parser.add_argument("--output", type=str, default=None, help="Output filename")
 
     args = parser.parse_args()
-    style = args.style
+    style = args.style or random.choice(list(STYLE_GENERATORS.keys()))
+    print(f"🎨 Generating {style} wallpaper ({args.width}x{args.height})...")
 
     # Generate the wallpaper
-
-    if style is None:
-        style, generator = random.choice(list(STYLE_GENERATORS.items()))
-    else:
-        generator = STYLE_GENERATORS[style]
-    print(f"🎨 Generating {style} wallpaper ({args.width}x{args.height})...")
+    generator = STYLE_GENERATORS[style]
     img_array = generator(args.width, args.height, args.seed)
 
     # Create and save image
     img = Image.fromarray(img_array, "RGB")
 
-    output_path = args.output or f"wallpaper_{style}_{args.width}x{args.height}.png"
+    output_path = args.output or Path.home() / ".local/share/wallpapers/daily.png"
+
     img.save(output_path, "PNG")
 
+    set_wallpaper_and_accent_gnome(output_path, get_accent_color(img))
+
     print(f"✅ Saved to: {output_path}")
-    print(f"   File size: {Path(output_path).stat().st_size / 1024:.1f} KB")
 
 
 if __name__ == "__main__":
