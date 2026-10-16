@@ -18,7 +18,7 @@ import argparse
 import math
 import random
 from pathlib import Path
-from colorsys import hsl_to_rgb
+from colorsys import hls_to_rgb, rgb_to_hsv
 
 import numpy as np
 from PIL import Image
@@ -38,8 +38,10 @@ def create_color_palette(seed: int | None = None) -> list[tuple[int, int, int]]:
         saturation = 0.6 + random.random() * 0.4
         lightness = 0.3 + random.random() * 0.4
 
-        # HSL to RGB conversion
-        rgb = hsl_to_rgb(hue, saturation, lightness)
+        # HLS to RGB conversion
+        to_byte = lambda x: tuple([int(255 * i) for i in x])
+
+        rgb = to_byte(hls_to_rgb(hue, lightness, saturation))
         palette.append(rgb)
 
     return palette
@@ -276,6 +278,44 @@ STYLE_GENERATORS = {
     "voronoi": generate_voronoi,
     "nebula": generate_nebula,
 }
+
+
+def get_accent_color(image):
+    # image = Image.open(sys.argv[1]).convert("RGB")
+    image.thumbnail((100, 100))
+
+    # Prefer saturated pixels so dark backgrounds don't dominate.
+    pixels = []
+    for r, g, b in image.getdata():
+        h, s, v = rgb_to_hsv(r / 255, g / 255, b / 255)
+        if s > 0.20 and v > 0.15:
+            pixels.append((h, s, v))
+
+    if not pixels:
+        return "slate"
+
+    # Find the most common hue family among saturated pixels.
+    families = {
+        "red": 0,
+        "orange": 30,
+        "yellow": 55,
+        "green": 115,
+        "teal": 165,
+        "blue": 220,
+        "purple": 275,
+        "pink": 325,
+    }
+
+    def hue_distance(a, b):
+        return min(abs(a - b), 360 - abs(a - b))
+
+    votes = Counter()
+    for h, s, v in pixels:
+        degrees = h * 360
+        nearest = min(families, key=lambda c: hue_distance(degrees, families[c]))
+        votes[nearest] += s * v
+
+    return votes.most_common(1)[0][0] if votes else "slate"
 
 
 def main():
